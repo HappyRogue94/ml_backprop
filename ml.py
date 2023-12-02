@@ -1,3 +1,5 @@
+from plot import draw_dot
+
 import numpy as np
 
 
