@@ -38,5 +38,6 @@ if __name__ == '__main__':
     b = Value(data=-3.0)
     c = Value(data=10.0)
     d = a*b + c
+    draw_dot(d)
 
 
