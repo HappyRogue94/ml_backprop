@@ -47,12 +47,37 @@ class Value:
             other.grad = self.data * out.grad 
         
         out._backward = _backward
-        
+
         return out
     
+    def backward(self):
+        """
+        automated backward propagation algorithm which returns the gradient (chain rule) at each node with
+        respect to the output
+        """
+        # store list of nodes from topo sort algorithm
+        topoList = []
+        # keep track of set of nodes visited
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._prev:
+                    build_topo(child)
+                topoList.append(v)
+        build_topo(self)
+
+        self.grad = 1.0
+        for node in reversed(topoList):
+            node._backward()
+
+    
     def tanh(self):
+        """
+        activation function which is used to squash the output between (-1, 1)
+        """
         x = self.data
-        t = (math.exp(2*x)-1)/(math.exp(2*x) + 1)
+        t = (math.exp(2*x) - 1)/(math.exp(2*x) + 1)
         out = Value(t, (self, ), 'tanh')
 
         def _backward():
@@ -62,54 +87,29 @@ class Value:
 
         return out
 
-def lol():
-
-    h = 0.0001
-    a = Value(data=2.0, label='a')
-    b = Value(data=-3.0, label='b')
-    c = Value(data=10.0, label='c')
-    e = a*b; e.label = 'e'
-    d = e + c; d.label = 'd'
-    f = Value(-2.0, label = 'f')
-    L = d*f; L.label = 'L'
-    L1 = L.data
-
-    a = Value(data=2.0, label='a')
-    b = Value(data=-3.0, label='b')
-    c = Value(data=10.0, label='c')
-    e = a*b; e.label = 'e'
-    d = e + c; d.label = 'd'
-    f = Value(-2.0, label = 'f')
-    L = d*f; L.label = 'L'
-    L2 = L.data + h
-
-    print((L2-L1)/h)
-
-#inputs
-x1 = Value(2.0, label='x1')
-x2 = Value(0.0, label='x2')
-
-#weights
-w1 = Value(-3.0, label='w1')
-w2 = Value(1.0, label='w2')
-
-# bias of the neuron
-b = Value(6.7, label = 'b')
-
-x1w1 = x1*w1; x1w1.label='x1*w1'
-x2w2 = x2*w2; x2w2.label='x2*w2'
-
-#sum(WiXi+b)
-x1w1x2w2 = x1w1 + x2w2; x1w1x2w2.label='x1*w1 + x2*w2'
-
-#neuron
-n = x1w1x2w2 + b; n.label='n'
-
-#output
-o = n.tanh()
-
-
 if __name__ == '__main__': 
-    draw_dot(o)
+    #inputs
+    x1 = Value(2.0, label='x1')
+    x2 = Value(0.0, label='x2')
+
+    #weights
+    w1 = Value(-3.0, label='w1')
+    w2 = Value(1.0, label='w2')
+
+    # bias of the neuron
+    b = Value(6.88137358, label = 'b')
+
+    x1w1 = x1*w1; x1w1.label='x1*w1'
+    x2w2 = x2*w2; x2w2.label='x2*w2'
+
+    #sum(WiXi+b)
+    x1w1x2w2 = x1w1 + x2w2; x1w1x2w2.label='x1*w1 + x2*w2'
+
+    #neuron
+    n = x1w1x2w2 + b; n.label='n'
+
+    #output
+    o = n.tanh()
+
 
 
