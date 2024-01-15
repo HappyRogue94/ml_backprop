@@ -7,13 +7,13 @@ import math
 class Value:
     """
     This class defines a data structure used to represent a mathematical experession
-    and its operations 
+    and its operations for the neural network
     """ 
     def __init__(self, data, _children=(), _op='', label = '') -> None:
         self.data = data
         self.grad = 0.0 # default gradient is zero, represents derivative of the output w respect to value
         self._backward = lambda: None
-        self._prev=set(_children)
+        self._prev = set(_children)
         self._op=_op
         self.label = label
 
@@ -23,32 +23,54 @@ class Value:
     def __add__(self, other):
         """
         this method is used to overload the '+' operator to allow for addition
-        of two seperate objects
+        of two seperate nodes in the NN
         """
+        other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), '+')
 
         def _backward():
-            self.grad  = (1.0) * out.grad
-            other.grad = (1.0) * out.grad
+            other.grad += (1.0) * out.grad
+            self.grad  += (1.0) * out.grad
         
         out._backward = _backward
             
         return out
+    
+    def __neg__(self):
+        return self * -1
+    
+    def __sub__(self, other):
+        return self + (-other)
+    
+    def __rmul__(self, other): # swaps as situatuion like 2.__mul__(<ValueObj>)
+        return self * other
 
     def __mul__(self, other):
         """
         this method is used to overload the '*' operator to allow for multiplication
-        of two seperate objects
+        of two seperate nodes in the NN
         """
+        other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, (self, other), '*')
 
         def _backward():
-            self.grad  = other.data * out.grad
-            other.grad = self.data * out.grad 
+            self.grad  += other.data * out.grad
+            other.grad += self.data * out.grad 
         
         out._backward = _backward
 
         return out
+    
+    def __pow__(self, other):
+        assert isinstance(other, (int, float)), "only supporting int/float powers"
+        out = Value(self.data**other, (self,), f'**{other}')
+
+        def _backward():
+            self.grad += (other * (self.data**(other -1))) * out.grad # power rule
+        out._backward = _backward
+    
+    def __truediv__(self, other): # self / other
+        return self * other**(-1)
     
     def backward(self):
         """
@@ -81,12 +103,25 @@ class Value:
         out = Value(t, (self, ), 'tanh')
 
         def _backward():
-            self.grad = (1 - t**2) * out.grad
+            self.grad += (1 - t**2) * out.grad
         
         out._backward = _backward
 
         return out
 
+    def exp(self):
+        """
+        exponent implementation for breaking up tanh = (e^2x - 1)/(e^2x + 1)
+        """
+        x = self.data
+        out = Value(math.exp(x), (self, ), 'exp')
+
+        def _backward():
+            self.grad += out.data * out.grad
+        
+        out._backward = _backward
+
+        return out
 if __name__ == '__main__': 
     #inputs
     x1 = Value(2.0, label='x1')
